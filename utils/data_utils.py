@@ -4,6 +4,7 @@ import torch
 
 from torchvision import transforms, datasets
 from torch.utils.data import DataLoader, RandomSampler, DistributedSampler, SequentialSampler
+from plantclef.plantclef import PlantCLEF
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,20 @@ def get_loader(args):
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
     ])
 
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.RandomRotation(15),
+            transforms.CenterCrop((args.img_size, args.img_size)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.2974, 0.3233, 0.2370], [0.1399, 0.1464, 0.1392])
+        ]),
+        'val': transforms.Compose([
+            transforms.CenterCrop((args.img_size, args.img_size)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.2974, 0.3233, 0.2370], [0.1399, 0.1464, 0.1392])
+        ])
+    }
+
     if args.dataset == "cifar10":
         trainset = datasets.CIFAR10(root="./data",
                                     train=True,
@@ -33,6 +48,11 @@ def get_loader(args):
                                    train=False,
                                    download=True,
                                    transform=transform_test) if args.local_rank in [-1, 0] else None
+
+    if args.dataset == "plantclef":
+        trainset = PlantCLEF("/data/dataset/plantclef_split_3_2_95", transform=data_transforms["train"]) 
+        testset = PlantCLEF("/data/dataset/plantclef_split_3_2_95", train=False, transform=data_transforms["val"]) 
+
 
     else:
         trainset = datasets.CIFAR100(root="./data",
