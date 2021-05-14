@@ -50,8 +50,8 @@ def get_loader(args):
                                    transform=transform_test) if args.local_rank in [-1, 0] else None
 
     if args.dataset == "plantclef":
-        trainset = PlantCLEF("/data/dataset/plantclef_split_3_2_95", transform=data_transforms["train"]) 
-        testset = PlantCLEF("/data/dataset/plantclef_split_3_2_95", train=False, transform=data_transforms["val"]) 
+        trainset = PlantCLEF("/home/ubuntu/dataset/", transform=data_transforms["train"]) 
+        testset = PlantCLEF("/home/ubuntu/dataset/", train=False, transform=data_transforms["val"]) 
 
 
     else:

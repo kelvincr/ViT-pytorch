@@ -6,6 +6,7 @@ import argparse
 import os
 import random
 import numpy as np
+import timm
 
 from datetime import timedelta
 
@@ -14,6 +15,7 @@ import torch.distributed as dist
 
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
+from torch.nn import CrossEntropyLoss
 # from apex import amp
 # from apex.parallel import DistributedDataParallel as DDP
 
@@ -61,9 +63,9 @@ def setup(args):
 
     num_classes = 997 if args.dataset == "plantclef" else (10 if args.dataset == "cifar10" else 100)
 
-
-    model = VisionTransformer(config, args.img_size, zero_head=True, num_classes=num_classes)
-    model.load_from(np.load(args.pretrained_dir))
+    model = timm.create_model('resnet50', pretrained=True, num_classes=num_classes)
+#     model = VisionTransformer(config, args.img_size, zero_head=True, num_classes=num_classes)
+#     model.load_from(np.load(args.pretrained_dir))
     model.to(args.device)
     num_params = count_parameters(model)
 
@@ -107,7 +109,7 @@ def valid(args, model, writer, test_loader, global_step):
         batch = tuple(t.to(args.device) for t in batch)
         x, y = batch
         with torch.no_grad():
-            logits = model(x)[0]
+            logits = model(x)
 
             eval_loss = loss_fct(logits, y)
             eval_losses.update(eval_loss.item())
@@ -194,8 +196,12 @@ def train(args, model):
         for step, batch in enumerate(epoch_iterator):
             batch = tuple(t.to(args.device) for t in batch)
             x, y = batch
-            loss = model(x, y)
-
+            loss_fn = CrossEntropyLoss()
+#             loss = loss_fct(logits.view(-1, self.num_classes), labels.view(-1))
+#             loss = model(x, y)
+            output = model(x)
+            loss = loss_fn(output, y)
+            
             if args.gradient_accumulation_steps > 1:
                 loss = loss / args.gradient_accumulation_steps
             if args.fp16:
